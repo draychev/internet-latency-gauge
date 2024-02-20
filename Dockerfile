@@ -1,43 +1,56 @@
-# Use Alpine Linux for its small size
-FROM alpine:latest
+FROM debian:bookworm
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+     && apt-get upgrade -y \
+     && apt-get install \
+     -y --no-install-recommends \
+     apt-transport-https software-properties-common wget inetutils-ping wget tar curl
 
 # Set the environment variables
 ENV LOCATION=HNL \
     PING_DEST="1.1.1.1,8.8.8.8"
 
-# Install necessary packages
-RUN apk add --no-cache wget tar bash
+# Import the GPG key:
+RUN mkdir -p /etc/apt/keyrings/
+RUN wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | tee /etc/apt/keyrings/grafana.gpg > /dev/null
+
+# Add a repository for stable releases
+RUN echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | tee -a /etc/apt/sources.list.d/grafana.list
+
+# Updates the list of available packages
+RUN apt-get update
+
+# Installs the latest OSS release:
+RUN apt-get install -y grafana
+
+# --- Prometheus
 
 # Download and Install Prometheus
 ENV PROMETHEUS_VERSION 2.37.0
 RUN wget https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz && \
-    tar -xzf prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz -C /tmp && \
-    mv /tmp/prometheus-${PROMETHEUS_VERSION}.linux-amd64 /prometheus
+   tar -xzf prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz -C /tmp && \
+   mv /tmp/prometheus-${PROMETHEUS_VERSION}.linux-amd64 /prometheus
 
-# Download and Install Grafana
-RUN wget https://dl.grafana.com/oss/release/grafana-9.1.7.linux-amd64.tar.gz && \
-    tar -zxvf grafana-9.1.7.linux-amd64.tar.gz -C /tmp && \
-    mv /tmp/grafana-9.1.7 /grafana
+# ---
 
 # Copy the binary file from your host to the container
-COPY bin/ping /usr/local/bin/ping
+COPY bin/ping /ping
 
 # Make sure the ping binary is executable
-RUN chmod +x /usr/local/bin/ping
+RUN chmod +x /ping
 
-# Configure Prometheus to scrape metrics from localhost:9876
-RUN echo "global:\n  scrape_interval: 15s\n  evaluation_interval: 15s\n\nscrape_configs:\n  - job_name: 'localhost'\n    static_configs:\n      - targets: ['localhost:9876']" > /prometheus/prometheus.yml
+COPY docker-container/prometheus.yml /prometheus/prometheus.yml
 
-# Copy provisioning files and dashboard JSON
 COPY dashboards.yml /grafana/conf/provisioning/dashboards/dashboards.yml
 COPY dashboard.json /var/lib/grafana/dashboards/dashboard.json
 
-# Create a startup script to run Prometheus, Grafana, and the ping binary
-RUN echo -e "#!/bin/sh\n/prometheus/prometheus --config.file=/prometheus/prometheus.yml &\n/grafana/bin/grafana-server -homepath /grafana &\n/usr/local/bin/ping" > /start.sh && \
-    chmod +x /start.sh
+COPY docker-container/start.sh /start.sh
+RUN chmod +x /start.sh
 
 # Expose ports (3000 for Grafana, 9090 for Prometheus)
 EXPOSE 3000 9090
+
+RUN ls -lah /
 
 # Command to run when the container starts
 CMD ["/start.sh"]

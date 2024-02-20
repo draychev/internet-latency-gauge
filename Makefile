@@ -13,7 +13,7 @@ build-docker:
 .PHONY: build-go
 build-go: clean
 	mkdir -p ./bin
-	go build -o ./bin/ping ./ping.go
+	CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o ./bin/ping ./ping.go
 
 .PHONY: build
 build: clean build-go build-docker
