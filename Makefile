@@ -8,5 +8,5 @@ clean:
 
 .PHONY: build
 build: clean
-	mkdir ./bin
-	go build ./ping.go -o ./bin/ping
+	mkdir -p ./bin
+	go build -o ./bin/ping ./ping.go
