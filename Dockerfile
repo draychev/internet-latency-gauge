@@ -20,7 +20,7 @@ RUN wget https://dl.grafana.com/oss/release/grafana-9.1.7.linux-amd64.tar.gz && 
     mv /tmp/grafana-9.1.7 /grafana
 
 # Copy the binary file from your host to the container
-COPY ping /usr/local/bin/ping
+COPY bin/ping /usr/local/bin/ping
 
 # Make sure the ping binary is executable
 RUN chmod +x /usr/local/bin/ping
