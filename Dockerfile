@@ -14,7 +14,7 @@ RUN wget https://github.com/prometheus/prometheus/releases/download/v${PROMETHEU
     tar -xzf prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz -C /tmp && \
     mv /tmp/prometheus-${PROMETHEUS_VERSION}.linux-amd64 /prometheus
 
-# Install Grafana
+# Download and Install Grafana
 RUN wget https://dl.grafana.com/oss/release/grafana-9.1.7.linux-amd64.tar.gz && \
     tar -zxvf grafana-9.1.7.linux-amd64.tar.gz -C /tmp && \
     mv /tmp/grafana-9.1.7 /grafana
@@ -27,6 +27,10 @@ RUN chmod +x /usr/local/bin/ping
 
 # Configure Prometheus to scrape metrics from localhost:9876
 RUN echo "global:\n  scrape_interval: 15s\n  evaluation_interval: 15s\n\nscrape_configs:\n  - job_name: 'localhost'\n    static_configs:\n      - targets: ['localhost:9876']" > /prometheus/prometheus.yml
+
+# Copy provisioning files and dashboard JSON
+COPY dashboards.yml /grafana/conf/provisioning/dashboards/dashboards.yml
+COPY dashboard.json /var/lib/grafana/dashboards/dashboard.json
 
 # Create a startup script to run Prometheus, Grafana, and the ping binary
 RUN echo -e "#!/bin/sh\n/prometheus/prometheus --config.file=/prometheus/prometheus.yml &\n/grafana/bin/grafana-server -homepath /grafana &\n/usr/local/bin/ping" > /start.sh && \
