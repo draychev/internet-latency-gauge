@@ -2,6 +2,7 @@
 
 /prometheus/prometheus --config.file=/prometheus/prometheus.yml &
 
-/grafana/bin/grafana-server -homepath /grafana &
+/usr/share/grafana/bin/grafana-server --config=/etc/grafana/grafana.ini --homepath=/usr/share/grafana &
 #### grafana-server", "-dataDir=/data/grafana"]
+
 /ping

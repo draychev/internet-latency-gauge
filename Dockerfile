@@ -39,7 +39,10 @@ COPY bin/ping /ping
 # Make sure the ping binary is executable
 RUN chmod +x /ping
 
+# --- Config Files
+
 COPY docker-container/prometheus.yml /prometheus/prometheus.yml
+COPY docker-container/grafana.ini /etc/grafana/grafana.ini
 
 COPY dashboards.yml /grafana/conf/provisioning/dashboards/dashboards.yml
 COPY dashboard.json /var/lib/grafana/dashboards/dashboard.json
