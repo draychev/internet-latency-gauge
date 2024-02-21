@@ -1,0 +1,10 @@
+---
+apiVersion: 1
+providers:
+  - name: 'internet-latency-ping'
+    orgId: 1
+    type: file
+    updateIntervalSeconds: 10
+    options:
+      path: /etc/grafana/dashboards
+      foldersFromFileStructure: true

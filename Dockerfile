@@ -10,6 +10,15 @@ RUN apt-get update \
 ENV LOCATION=HNL \
     PING_DEST="1.1.1.1,8.8.8.8"
 
+
+# --- Install the ping tool
+
+# Copy the binary file from your host to the container
+COPY bin/ping /ping
+
+
+# --- Install Grafana
+
 # Import the GPG key:
 RUN mkdir -p /etc/apt/keyrings/
 RUN wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | tee /etc/apt/keyrings/grafana.gpg > /dev/null
@@ -23,7 +32,7 @@ RUN apt-get update
 # Installs the latest OSS release:
 RUN apt-get install -y grafana
 
-# --- Prometheus
+# --- Install Prometheus
 
 # Download and Install Prometheus
 ENV PROMETHEUS_VERSION 2.37.0
@@ -31,29 +40,24 @@ RUN wget https://github.com/prometheus/prometheus/releases/download/v${PROMETHEU
    tar -xzf prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz -C /tmp && \
    mv /tmp/prometheus-${PROMETHEUS_VERSION}.linux-amd64 /prometheus
 
-# ---
-
-# Copy the binary file from your host to the container
-COPY bin/ping /ping
-
-# Make sure the ping binary is executable
-RUN chmod +x /ping
-
 # --- Config Files
 
-COPY docker-container/prometheus.yml /prometheus/prometheus.yml
-COPY docker-container/grafana.ini /etc/grafana/grafana.ini
+COPY docker/prometheus.yaml /prometheus/prometheus.yaml
 
-COPY dashboards.yml /grafana/conf/provisioning/dashboards/dashboards.yml
-COPY dashboard.json /var/lib/grafana/dashboards/dashboard.json
 
-COPY docker-container/start.sh /start.sh
-RUN chmod +x /start.sh
+# --- Grafana config
+# Grafana plugins would go here
+COPY docker/grafana/grafana.ini /etc/grafana/grafana.ini
+COPY docker/grafana/provisioning/datasources/latency.yaml /etc/grafana/provisioning/datasources/latency.yaml
+COPY docker/grafana/provisioning/dashboards/latency.yaml /etc/grafana/provisioning/dashboards/latency.yaml
+COPY docker/grafana/dashboards/latency.json /etc/grafana/dashboards/latency.json
+COPY docker/grafana/dashboards/latency.json /etc/grafana/dashboards/latency/ping.json
+
+# --- start script
+COPY docker/start.sh /start.sh
 
 # Expose ports (3000 for Grafana, 9090 for Prometheus)
 EXPOSE 3000 9090
-
-RUN ls -lah /
 
 # Command to run when the container starts
 CMD ["/start.sh"]
