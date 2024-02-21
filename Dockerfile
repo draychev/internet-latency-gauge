@@ -53,6 +53,15 @@ COPY docker/grafana/provisioning/dashboards/latency.yaml /etc/grafana/provisioni
 COPY docker/grafana/dashboards/latency.json /etc/grafana/dashboards/latency.json
 COPY docker/grafana/dashboards/latency.json /etc/grafana/dashboards/latency/ping.json
 
+RUN chown -R grafana:grafana /etc/grafana
+
+# --- Install the Grafana Image Renderer to be able to automatically get PNGs
+RUN grafana-cli plugins install grafana-image-renderer
+## Downloaded and extracted grafana-image-renderer v3.10.0 zip successfully to /var/lib/grafana/plugins/grafana-image-renderer
+## Please restart Grafana after installing or removing plugins. Refer to Grafana documentation for instructions if necessary.
+
+
+
 # --- start script
 COPY docker/start.sh /start.sh
 

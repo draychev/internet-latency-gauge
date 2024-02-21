@@ -9,7 +9,7 @@ datasources:
     type: prometheus
     access: proxy
     orgId: 1
-    url: http://prometheus:9090/prometheus
-    uid: "bd8271c8-8fcf-4b50-bc21-db42577faa1d"
+    url: http://localhost:9090/
+    uid: bd8271c8-8fcf-4b50-bc21-db42577faa1d
     isDefault: true
     editable: true
