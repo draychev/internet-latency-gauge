@@ -46,33 +46,6 @@ func getComputerName() string {
 	return strings.Split(string(nodeName), ".")[0]
 }
 
-func ping(destinationHost string, pingGauge *prometheus.GaugeVec) {
-	// Compile the regular expression and check for errors
-	re, err := regexp.Compile(`time=(\d+\.?\d*) ms`)
-	if err != nil {
-		fmt.Println("Error compiling regex:", err)
-		return
-	}
-
-	cmd := exec.Command("ping", "-c", "1", destinationHost)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Error().Err(err).Msgf("Error pinging %s", destinationHost)
-		return
-	}
-	match := re.FindStringSubmatch(string(output))
-	if len(match) < 2 {
-		log.Error().Msgf("Did not found time with regex in output: %s", output)
-		return
-	}
-	tm, err := strconv.ParseFloat(match[1], 64)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error parsing %s into float", match)
-		return
-	}
-	pingGauge.WithLabelValues(computerName, loc, destinationHost).Set(tm)
-}
-
 type loggingHandler struct {
 	handler http.Handler
 }
@@ -115,14 +88,34 @@ func main() {
 		Help: "A gauge to track ping latency to some destination",
 	}, []string{"name", "location", "destination"})
 
-	// how often should we ping
 	pingTicker := time.NewTicker(5 * time.Second)
 	go func(gauge *prometheus.GaugeVec) {
+		re, err := regexp.Compile(`time=(\d+\.?\d*) ms`)
+		if err != nil {
+			fmt.Println("Error compiling regex:", err)
+			return
+		}
+
 		for {
-			// Wait for the ticker to tick
 			<-pingTicker.C
 			for _, destination := range destinations {
-				ping(strings.Trim(destination, " "), gauge)
+				cmd := exec.Command("ping", "-c", "1", destination)
+				output, err := cmd.CombinedOutput()
+				if err != nil {
+					log.Error().Err(err).Msgf("Error pinging %s", destination)
+					continue
+				}
+				match := re.FindStringSubmatch(string(output))
+				if len(match) < 2 {
+					log.Error().Msgf("Regex did not find 'time=' in output: %s", output)
+					continue
+				}
+				tm, err := strconv.ParseFloat(match[1], 64)
+				if err != nil {
+					log.Error().Err(err).Msgf("Error parsing %s into a float", match)
+					continue
+				}
+				pingGauge.WithLabelValues(computerName, loc, destination).Set(tm)
 			}
 		}
 	}(pingGauge)
@@ -145,10 +138,10 @@ func main() {
 	}
 
 	go func() {
-		log.Error().Err(server.ListenAndServe()).Msg("Could not start server")
+		log.Error().Err(server.ListenAndServe()).Msgf("Could not start server on port %s", portNumber)
 	}()
 
 	<-stop
 	cancel()
-	log.Info().Msg("We are done!")
+	log.Info().Msg("Ciao!")
 }
